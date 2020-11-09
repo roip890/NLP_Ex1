@@ -1,4 +1,6 @@
 import sys
+import operator
+import regex as re
 
 w1 = 0.33
 w2 = 0.33
@@ -49,20 +51,93 @@ def parse_training_data(q_mle_path, e_mle_path):
 
 
 def test_input_file(input_file_path, q_dict, e_dict):
-    with open(input_file_path) as input_file:
+    output_text = ''
+
+
+
+
+    with open(input_file_path) as input_file, open('data/ass1-tagger-dev') as result_file:
+        result_sentences = result_file.readlines()
         sentences = input_file.readlines()
-        for sentence in sentences:
+        f = 0
+        t = 0
+        for sentence_index in range(0, len(sentences)):
+            sentence = '$START$ $START$ ' + sentences[sentence_index]
+            result_sentence = '$START$/$START$ $START$/$START$ ' + result_sentences[sentence_index]
             tokens = sentence.split(' ')
+            result_tokens = result_sentence.split(' ')
+            tag1 = '$START$'
+            tag2 = '$START$'
+            for index in range(2, len(tokens)):
+                tag3 = tag_word(tag1, tag2, tokens[index], e_dict, q_dict)
+                tag1 = tag2
+                tag2 = tag3
+                output_text += tokens[index] + '/' + str(tag3) + ' '
+                (result_word, result_tag) = result_tokens[index].rsplit('/', 1)
+                if result_tag == tag3:
+                    t += 1
+                else:
+                    f += 1
+            output_text += '\n'
 
-            # first word
-            first_word_e_value = {} if e_dict[tokens[0]] is None else e_dict[tokens[0]]
-            first_word_q_value = {} if q_dict[ONE_WORD_TOKEN][tokens[0]] is None else q_dict[ONE_WORD_TOKEN][tokens[0]]
-
-            # second word
-            second_word_e_value = 0 if e_dict[tokens[1]] is None else e_dict[tokens[1]]
-            second_q_value = 0 if q_dict[ONE_WORD_TOKEN][tokens[0]] is None else q_dict[ONE_WORD_TOKEN][tokens[0]]
 
 
+def tag_word(tag1, tag2, word, e_dict, q_dict):
+    if word in e_dict.keys():
+        e_values = e_dict[word]
+    else:
+        e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
+
+    e_values_sum = sum(e_values.values())
+    if not 0.99999999 < e_values_sum <= 1:
+        for key in e_values.keys():
+            e_values[key] = e_values[key] / e_values_sum
+
+    q_dict_one_word_sum = sum(q_dict.get(ONE_WORD_TOKEN, {1: 1}).values())
+    if not 0.99999999 < q_dict_one_word_sum <= 1:
+        for key in q_dict[ONE_WORD_TOKEN].keys():
+            q_dict[ONE_WORD_TOKEN][key] = q_dict[ONE_WORD_TOKEN][key] / q_dict_one_word_sum
+
+    q_dict_tag_1_sum = sum(q_dict.get(tag1, {1: 1}).values())
+    if not 0.99999999 < q_dict_tag_1_sum <= 1:
+        for key in q_dict[tag1].keys():
+            q_dict[tag1][key] = q_dict[tag1][key] / q_dict_tag_1_sum
+
+    q_dict_tag_1_tag_2_sum = sum(q_dict.get((tag1, tag2), {1: 1}).values())
+    if not 0.99999999 < q_dict_tag_1_tag_2_sum <= 1:
+        for key in q_dict[(tag1, tag2)].keys():
+            q_dict[(tag1, tag2)][key] = q_dict[(tag1, tag2)][key] / q_dict_tag_1_tag_2_sum
+
+
+    result_dict = { key:
+                        (0.4 * e_values.get(key, 0))
+                        + (0.01 * q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0))
+                        + (0.09 * q_dict.get(tag1, {}).get(key, 0))
+                        + (0.5 * q_dict.get((tag1, tag2), {}).get(key, 0))
+              for key in
+                    set(e_values)
+                    | set(q_dict.get(ONE_WORD_TOKEN, {}))
+                    | set(q_dict.get(tag1, {}))
+                    | set(q_dict.get((tag1, tag2), {}))
+                    }
+
+    return max(result_dict.items(), key=operator.itemgetter(1))[0]
+
+
+def get_word_key(word):
+    if str(word).endswith('ing'):
+        return '^*ing'
+    if str(word).endswith('tial'):
+        return '^*tial'
+    if re.match('^[A-Z][a-z]*', word):
+        return '^Aa'
+    if re.match('^[0-9]*.[0-9]*$', word):
+        return '^number'
+    if re.match(
+            '^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$',
+            word):
+        return '^date'
+    return word
 
 
 if len(sys.argv) >= 6:
@@ -73,4 +148,5 @@ if len(sys.argv) >= 6:
     extra_file_path = sys.argv[5]
 
     q_dict, e_dict = parse_training_data(q_mle_path, e_mle_path)
+    test_input_file(input_file_path, q_dict, e_dict)
 
