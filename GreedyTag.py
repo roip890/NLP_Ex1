@@ -2,9 +2,9 @@ import sys
 import operator
 import regex as re
 
-w1 = 0.33
-w2 = 0.33
-w3 = 0.34
+# w1 = 0.33
+# w2 = 0.33
+# w3 = 0.34
 ONE_WORD_TOKEN = '$ONE_WORD$'
 
 def ensure_value_in_dict(dict, value):
@@ -52,10 +52,6 @@ def parse_training_data(q_mle_path, e_mle_path):
 
 def test_input_file(input_file_path, q_dict, e_dict):
     output_text = ''
-
-
-
-
     with open(input_file_path) as input_file, open('data/ass1-tagger-dev') as result_file:
         result_sentences = result_file.readlines()
         sentences = input_file.readlines()
@@ -74,12 +70,13 @@ def test_input_file(input_file_path, q_dict, e_dict):
                 tag2 = tag3
                 output_text += tokens[index] + '/' + str(tag3) + ' '
                 (result_word, result_tag) = result_tokens[index].rsplit('/', 1)
+                # print('word: ' + tokens[index] + ', ' + 'tag: ' + tag3 + '. result_word: ' + result_word + ', result_tag: ' + result_tag)
                 if result_tag == tag3:
                     t += 1
                 else:
                     f += 1
             output_text += '\n'
-
+        print(t/(t+f))
 
 
 def tag_word(tag1, tag2, word, e_dict, q_dict):
@@ -110,10 +107,12 @@ def tag_word(tag1, tag2, word, e_dict, q_dict):
 
 
     result_dict = { key:
-                        (0.4 * e_values.get(key, 0))
-                        + (0.01 * q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0))
-                        + (0.09 * q_dict.get(tag1, {}).get(key, 0))
-                        + (0.5 * q_dict.get((tag1, tag2), {}).get(key, 0))
+                        e_values.get(key, 0) *
+                        (
+                            (0.33 * q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0))
+                            + (0.33 * q_dict.get(tag1, {}).get(key, 0))
+                            + (0.34 * q_dict.get((tag1, tag2), {}).get(key, 0))
+                        )
               for key in
                     set(e_values)
                     | set(q_dict.get(ONE_WORD_TOKEN, {}))
