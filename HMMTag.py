@@ -72,10 +72,10 @@ def test_input_file(input_file_path, q_dict, e_dict):
                 tag2 = tag3
                 output_text += tokens[index] + '/' + str(tag3) + ' '
                 (result_word, result_tag) = result_tokens[index].rsplit('/', 1)
+                # print('word: ' + tokens[index] + ', ' + 'tag: ' + tag3 + '. result_word: ' + result_word + ', result_tag: ' + result_tag)
                 if result_tag == tag3:
                     t += 1
                 else:
-                    # print('word: ' + tokens[index] + ', ' + 'tag: ' + tag3 + '. result_word: ' + result_word + ', result_tag: ' + result_tag)
                     f += 1
             output_text += '\n'
         print(t / (t + f))
