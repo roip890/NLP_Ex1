@@ -1,5 +1,6 @@
-import sys
 import operator
+import sys
+
 import regex as re
 
 # w1 = 0.33
@@ -64,53 +65,52 @@ def test_input_file(input_file_path, q_dict, e_dict):
             result_sentence = '$START$/$START$ $START$/$START$ ' + result_sentences[sentence_index].strip()
             tokens = sentence.split(' ')
             result_tokens = result_sentence.split(' ')
-            tag1 = '$START$'
-            tag2 = '$START$'
+            prop = [
+                {"$START$": {"$START$": 1}},
+                {"$START$": {"$START$": 1}}
+            ]
             for index in range(2, len(tokens)):
-                tag3 = tag_word(tag1, tag2, tokens[index], e_dict, q_dict)
-                tag1 = tag2
-                tag2 = tag3
-                output_text += tokens[index] + '/' + str(tag3) + ' '
-                (result_word, result_tag) = result_tokens[index].rsplit('/', 1)
-                # print('word: ' + tokens[index] + ', ' + 'tag: ' + tag3 + '. result_word: ' + result_word + ', result_tag: ' + result_tag)
-                if result_tag == tag3:
-                    t += 1
-                else:
-                    f += 1
+                prop.append(tag_word(prop[index - 2], prop[index - 1], tokens[index], e_dict, q_dict))
+            print(prop[5])
             output_text += '\n'
         print(t / (t + f))
 
 
-def tag_word(tag1, tag2, word, e_dict, q_dict):
-    if word in e_dict.keys():
-        e_values = e_dict[word]
-    else:
-        e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
+def tag_word(dict1, dict2, word, e_dict, q_dict):
+    result_dict = {}
+    for d1 in dict1:
+        for d3 in dict2:
+            for d2 in d3:
+                if d2 not in result_dict.keys():
+                    result_dict[d2] = {}
+                if word in e_dict.keys():
+                    e_values = e_dict[word]
+                else:
+                    e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
+                e_values_sum = sum(e_values.values())
+                if not 0.9 < e_values_sum <= 1:
+                    for key in e_values.keys():
+                        e_values[key] = e_values[key] / e_values_sum
 
-    e_values_sum = sum(e_values.values())
-    if not 0.9 < e_values_sum <= 1:
-        for key in e_values.keys():
-            e_values[key] = e_values[key] / e_values_sum
+                q_dict_one_word_sum = sum(q_dict.get(ONE_WORD_TOKEN, {1: 1}).values())
+                if not 0.9 < q_dict_one_word_sum <= 1:
+                    for key in q_dict[ONE_WORD_TOKEN].keys():
+                        q_dict[ONE_WORD_TOKEN][key] = q_dict[ONE_WORD_TOKEN][key] / q_dict_one_word_sum
 
-    q_dict_one_word_sum = sum(q_dict.get(ONE_WORD_TOKEN, {1: 1}).values())
-    if not 0.9 < q_dict_one_word_sum <= 1:
-        for key in q_dict[ONE_WORD_TOKEN].keys():
-            q_dict[ONE_WORD_TOKEN][key] = q_dict[ONE_WORD_TOKEN][key] / q_dict_one_word_sum
+                q_dict_tag_1_sum = sum(q_dict.get(d1, {1: 1}).values())
+                if not 0.9 < q_dict_tag_1_sum <= 1:
+                    for key in q_dict[d1].keys():
+                        q_dict[d1][key] = q_dict[d1][key] / q_dict_tag_1_sum
 
-    q_dict_tag_1_sum = sum(q_dict.get(tag1, {1: 1}).values())
-    if not 0.9 < q_dict_tag_1_sum <= 1:
-        for key in q_dict[tag1].keys():
-            q_dict[tag1][key] = q_dict[tag1][key] / q_dict_tag_1_sum
+                q_dict_tag_1_tag_2_sum = sum(q_dict.get((d1, d2), {1: 1}).values())
+                if not 0.9 < q_dict_tag_1_tag_2_sum <= 1:
+                    for key in q_dict[(d1, d2)].keys():
+                        q_dict[(d1, d2)][key] = q_dict[(d1, d2)][key] / q_dict_tag_1_tag_2_sum
 
-    q_dict_tag_1_tag_2_sum = sum(q_dict.get((tag1, tag2), {1: 1}).values())
-    if not 0.9 < q_dict_tag_1_tag_2_sum <= 1:
-        for key in q_dict[(tag1, tag2)].keys():
-            q_dict[(tag1, tag2)][key] = q_dict[(tag1, tag2)][key] / q_dict_tag_1_tag_2_sum
+                result_dict[d2] = {key:get_prob_of_word(d1, d2, key, e_values, q_dict)*
+                                for key in merge_dicts(d1, d2, e_values, q_dict)}
 
-    result_dict = {key: get_prob_of_word(tag1, tag2, key, e_values, q_dict)
-                   for key in merge_dicts(tag1, tag2, e_values, q_dict)}
-
-    return max(result_dict.items(), key=operator.itemgetter(1))[0]
+    return result_dict
 
 
 def get_prob_of_word(tag1, tag2, key, e_values, q_dict):
