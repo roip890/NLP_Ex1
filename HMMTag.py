@@ -93,28 +93,24 @@ def test_input_file(input_file_path, q_dict, e_dict):
 def tag_word(dict1, dict2, word, e_dict, q_dict):
     result_dict = {}
     for d11 in dict1:
-        for d12 in dict1[d11]:
-            for d1 in dict1[d11][d12]:
-                for d21 in dict2:
-                    for d22 in dict2[d21]:
-                        for d2 in dict2[d21][d22]:
-                            if word in e_dict.keys():
-                                e_values = e_dict[word]
-                            else:
-                                e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
-                            for key in merge_dicts(d1, d2, e_values, q_dict):
-                                if key not in result_dict.keys():
-                                    result_dict[key] = {}
-                                if d21 not in result_dict[key].keys():
-                                    result_dict[key][d21] = {}
-                                result_dict[key][d21][d11] = get_prob_of_word(d1, d2, key, e_values, q_dict)*dict1[d11][d12][d1]*dict2[d21][d22][d2]
+        for d1 in dict1[d11]:
+            for d21 in dict2:
+                for d2 in dict2[d21]:
+                    if word in e_dict.keys():
+                        e_values = e_dict[word]
+                    else:
+                        e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
+                    for key in q_dict[ONE_WORD_TOKEN].keys():
+                        if key not in result_dict.keys():
+                            result_dict[key] = {}
+                        if d21 not in result_dict[key].keys():
+                            result_dict[key][d21] = {}
+                        result_dict[key][d21] = get_prob_of_word(d1, d2, key, e_values, q_dict)*dict1[d11][d1]*dict2[d21][d2]
+
     return result_dict
 
 
 def get_prob_of_word(tag1, tag2, key, e_values, q_dict):
-    q_dict_one_word = q_dict.get(ONE_WORD_TOKEN, {})
-    q_dict_tag1 = q_dict.get(tag1, {})
-    q_dict_tag1_tag2 = q_dict.get((tag1, tag2), {})
     e_value = e_values.get(key, 0)
     q_dict_one_word_key = q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0)
     q_dict_tag1_key = q_dict.get(tag1, {}).get(key, 0)
