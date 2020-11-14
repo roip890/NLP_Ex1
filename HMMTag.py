@@ -92,20 +92,18 @@ def test_input_file(input_file_path, q_dict, e_dict):
 
 def tag_word(dict1, dict2, word, e_dict, q_dict):
     result_dict = {}
-    for d11 in dict1:
-        for d1 in dict1[d11]:
-            for d21 in dict2:
-                for d2 in dict2[d21]:
-                    if word in e_dict.keys():
-                        e_values = e_dict[word]
-                    else:
-                        e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
-                    for key in q_dict[ONE_WORD_TOKEN].keys():
-                        if key not in result_dict.keys():
-                            result_dict[key] = {}
-                        if d21 not in result_dict[key].keys():
-                            result_dict[key][d21] = {}
-                        result_dict[key][d21] = get_prob_of_word(d1, d2, key, e_values, q_dict)*dict1[d11][d1]*dict2[d21][d2]
+    for word_back in q_dict[ONE_WORD_TOKEN].keys():
+        for double_word_back in q_dict[ONE_WORD_TOKEN].keys():
+            if word in e_dict.keys():
+                e_values = e_dict[word]
+            else:
+                e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
+            for key in q_dict[ONE_WORD_TOKEN].keys():
+                if key not in result_dict.keys():
+                    result_dict[key] = {}
+                if word_back not in result_dict[key].keys():
+                    result_dict[key][word_back] = {}
+                result_dict[key][word_back] = get_prob_of_word(double_word_back, word_back, key, e_values, q_dict)*dict1[word_back][double_word_back]*dict2[double_word_back][word_back]
 
     return result_dict
 
