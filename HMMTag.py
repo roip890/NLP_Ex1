@@ -49,6 +49,19 @@ def parse_training_data(q_mle_path, e_mle_path):
             if word not in e_dict.keys():
                 e_dict[word] = {}
             e_dict[word][tag] = int(value)
+        # normalize dicts
+        for word in e_dict:
+            word_e_value = e_dict[word]
+            e_values_sum = sum(word_e_value.values())
+            if not 0.9 < e_values_sum <= 1:
+                for key in word_e_value.keys():
+                    word_e_value[key] = word_e_value[key] / e_values_sum
+
+        for tag in q_dict:
+            q_dict_tag_sum = sum(q_dict.get(tag, {1: 1}).values())
+            if not 0.9 < q_dict_tag_sum <= 1:
+                for key in q_dict[tag].keys():
+                    q_dict[tag][key] = q_dict[tag][key] / q_dict_tag_sum
 
     return q_dict, e_dict
 
@@ -66,57 +79,58 @@ def test_input_file(input_file_path, q_dict, e_dict):
             tokens = sentence.split(' ')
             result_tokens = result_sentence.split(' ')
             prop = [
-                {"$START$": {"$START$": 1}},
-                {"$START$": {"$START$": 1}}
+                {"$START$":{"$START$": 1}},
+                {"$START$":{"$START$": 1}}
             ]
             for index in range(2, len(tokens)):
                 prop.append(tag_word(prop[index - 2], prop[index - 1], tokens[index], e_dict, q_dict))
-            print(prop[5])
-            output_text += '\n'
-        print(t / (t + f))
+                print(index)
+            max = 0
+            maxtag =""
+            prevtag = ""
+            k = []
+            #looking for the best place to start at the end
+            for i in prop[len(prop)-1]:
+                for j in prop[len(prop)-1][i]:
+                    if(max < prop[len(prop)-1][i][j]):
+                        max = prop[len(prop)-1][i][j]
+                        maxtag = i
+                        prevtag = j
+            k.append(maxtag)
+            newtag = ""
+            for i in range(len(prop)-2, -1,-1):
+                max = 0
+                for j in prop[i][prevtag]:
+                    if(prop[i][prevtag][j]>max):
+                        max = prop[i][prevtag][j]
+                        newtag = j
+                k.append(prevtag)
+                prevtag = newtag
+
 
 
 def tag_word(dict1, dict2, word, e_dict, q_dict):
     result_dict = {}
-    for d1 in dict1:
-        for d3 in dict2:
-            for d2 in d3:
-                if d2 not in result_dict.keys():
-                    result_dict[d2] = {}
+    for key in q_dict[ONE_WORD_TOKEN].keys():
+        for outer in dict2:
+            max = 0
+            inner_tag = ""
+            for inner in dict2[outer]:
                 if word in e_dict.keys():
                     e_values = e_dict[word]
                 else:
                     e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
-                e_values_sum = sum(e_values.values())
-                if not 0.9 < e_values_sum <= 1:
-                    for key in e_values.keys():
-                        e_values[key] = e_values[key] / e_values_sum
-
-                q_dict_one_word_sum = sum(q_dict.get(ONE_WORD_TOKEN, {1: 1}).values())
-                if not 0.9 < q_dict_one_word_sum <= 1:
-                    for key in q_dict[ONE_WORD_TOKEN].keys():
-                        q_dict[ONE_WORD_TOKEN][key] = q_dict[ONE_WORD_TOKEN][key] / q_dict_one_word_sum
-
-                q_dict_tag_1_sum = sum(q_dict.get(d1, {1: 1}).values())
-                if not 0.9 < q_dict_tag_1_sum <= 1:
-                    for key in q_dict[d1].keys():
-                        q_dict[d1][key] = q_dict[d1][key] / q_dict_tag_1_sum
-
-                q_dict_tag_1_tag_2_sum = sum(q_dict.get((d1, d2), {1: 1}).values())
-                if not 0.9 < q_dict_tag_1_tag_2_sum <= 1:
-                    for key in q_dict[(d1, d2)].keys():
-                        q_dict[(d1, d2)][key] = q_dict[(d1, d2)][key] / q_dict_tag_1_tag_2_sum
-
-                result_dict[d2] = {key:get_prob_of_word(d1, d2, key, e_values, q_dict)*
-                                for key in merge_dicts(d1, d2, e_values, q_dict)}
-
+                if get_prob_of_word(inner, outer, key, e_values, q_dict) * dict2[outer][inner] > max:
+                    max =get_prob_of_word(outer, inner, key, e_values, q_dict) * dict2[outer][inner]
+                    inner_tag = outer
+            if key not in result_dict.keys():
+                result_dict[key] = {}
+            result_dict[key][inner_tag] = max
     return result_dict
 
 
 def get_prob_of_word(tag1, tag2, key, e_values, q_dict):
-    q_dict_one_word = q_dict.get(ONE_WORD_TOKEN, {})
-    q_dict_tag1 = q_dict.get(tag1, {})
-    q_dict_tag1_tag2 = q_dict.get((tag1, tag2), {})
+
     e_value = e_values.get(key, 0)
     q_dict_one_word_key = q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0)
     q_dict_tag1_key = q_dict.get(tag1, {}).get(key, 0)
