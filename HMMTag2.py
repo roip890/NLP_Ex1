@@ -63,10 +63,17 @@ def parse_training_data(q_mle_path, e_mle_path):
             for key in q_dict[tag].keys():
                 q_dict[tag][key] = q_dict[tag][key] / q_dict_tag_sum
 
-    return q_dict, e_dict
+    tags = list(q_dict[ONE_WORD_TOKEN].keys())
+
+    tags_tuple = []
+    for t1 in tags:
+        for t2 in tags:
+            tags_tuple.append((t1, t2))
+
+    return q_dict, e_dict, tags, tags_tuple
 
 
-def test_input_file(input_file_path, q_dict, e_dict):
+def test_input_file(input_file_path, q_dict, e_dict, tags, tags_tuple):
     output_text = ''
     with open(input_file_path) as input_file, open('data/ass1-tagger-dev') as result_file:
         result_sentences = result_file.readlines()
@@ -82,8 +89,12 @@ def test_input_file(input_file_path, q_dict, e_dict):
             result_tokens = result_sentence.split(' ')
             tag1 = '$START$'
             tag2 = '$START$'
+            v_list = [
+                {key: max(q_dict[key].items(), key=operator.itemgetter(1)) for key in q_dict if isinstance(key, tuple)},
+                {key: max(q_dict[key].items(), key=operator.itemgetter(1)) for key in q_dict if isinstance(key, tuple)}
+            ]
             for index in range(2, len(tokens)):
-                tag3 = tag_word(tag1, tag2, tokens[index], e_dict, q_dict)
+                tag3 = tag_word(tag1, tag2, tokens[index], e_dict, q_dict, v_list[index-1], v_list[index-2], v_list, tags, tags_tuple)
                 tag1 = tag2
                 tag2 = tag3
                 output_text += tokens[index] + '/' + str(tag3) + ' '
@@ -97,28 +108,41 @@ def test_input_file(input_file_path, q_dict, e_dict):
         print(t / (t + f))
 
 
-def tag_word(tag1, tag2, word, e_dict, q_dict):
+def tag_word(tag1, tag2, word, e_dict, q_dict, v_1, v_2, v_list, tags, tags_tuple):
     if word in e_dict.keys():
         e_values = e_dict[word]
     else:
         e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
 
-    result_dict = {key: get_prob_of_word(tag1, tag2, key, e_values, q_dict)
-                   for key in merge_dicts(tag1, tag2, e_values, q_dict)}
+    v_i = {}
+    for t1, t2 in tags_tuple:
+        v_i_t_dict = {t: get_prob_of_word(t1, t2, t, e_values, q_dict, v_1, v_2) for t in tags}
+        v_i_t = max(v_i_t_dict.items(), key=operator.itemgetter(1))[0]
+        v_i[(t1, t2)] = (v_i_t, v_i_t_dict[v_i_t])
+    # v_i = {key: get_prob_of_word(tag1, tag2, key, e_values, q_dict, v_1, v_2) for key in tags_tuple}
 
-    return max(result_dict.items(), key=operator.itemgetter(1))[0]
+    v_list.append(v_i)
+    return v_i[(tag1, tag2)][0]
 
 
-def get_prob_of_word(tag1, tag2, key, e_values, q_dict):
-    # q_dict_one_word = q_dict.get(ONE_WORD_TOKEN, {})
-    # q_dict_tag1 = q_dict.get(tag1, {})
-    # q_dict_tag1_tag2 = q_dict.get((tag1, tag2), {})
-    e_value = e_values.get(key, 0)
-    q_dict_one_word_key = q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0)
-    q_dict_tag2_key = q_dict.get(tag2, {}).get(key, 0)
-    q_dict_tag1_tag2_key = q_dict.get((tag1, tag2), {}).get(key, 0)
-    q_value = (0.1 * q_dict_one_word_key) + (0.2 * q_dict_tag2_key) + (0.7 * q_dict_tag1_tag2_key)
-    return (0.5 * e_value) + (0.5 * q_value)
+def get_prob_of_word(tag1, tag2, t, e_values, q_dict, v_1, v_2):
+    q_dict_one_word = q_dict.get(ONE_WORD_TOKEN, {})
+    q_dict_tag2 = q_dict.get(tag2, {})
+    q_dict_tag1_tag2 = q_dict.get((tag1, tag2), {})
+
+    e_value = e_values.get(t, 0)
+    q_dict_one_word_key = q_dict_one_word.get(t, 0)
+    q_dict_tag1_key = q_dict_tag2.get(t, 0)
+    q_dict_tag1_tag2_key = q_dict_tag1_tag2.get(t, 0)
+    v_1_key = v_1.get((tag2, t), 0)
+    v_2_key = v_1.get((tag1, tag2), 0)
+    if isinstance(v_1_key, tuple):
+        v_1_key = v_1_key[1]
+    if isinstance(v_2_key, tuple):
+        v_2_key = v_2_key[1]
+    q_value = (0.1 * q_dict_one_word_key) + (0.2 * q_dict_tag1_key) + (0.7 * q_dict_tag1_tag2_key)
+    return e_value * q_value * v_2_key
+
 
 
 def merge_dicts(tag1, tag2, e_values, q_dict):
@@ -152,5 +176,5 @@ if len(sys.argv) >= 6:
     result_file_path = sys.argv[4]
     extra_file_path = sys.argv[5]
 
-    q_dict, e_dict = parse_training_data(q_mle_path, e_mle_path)
-    test_input_file(input_file_path, q_dict, e_dict)
+    q_dict, e_dict, tags, tags_tuple = parse_training_data(q_mle_path, e_mle_path)
+    test_input_file(input_file_path, q_dict, e_dict, tags, tags_tuple)
