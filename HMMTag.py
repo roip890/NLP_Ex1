@@ -7,7 +7,7 @@ import regex as re
 # w2 = 0.33
 # w3 = 0.34
 ONE_WORD_TOKEN = '$ONE_WORD$'
-
+tag_triple = {}
 
 def ensure_value_in_dict(dict, value):
     if value not in dict.keys():
@@ -84,7 +84,7 @@ def test_input_file(input_file_path, q_dict, e_dict):
             ]
             for index in range(2, len(tokens)):
                 prop.append(tag_word(prop[index - 2], prop[index - 1], tokens[index], e_dict, q_dict))
-                print(index)
+                # print(index)
             max = 0
             maxtag =""
             prevtag = ""
@@ -106,6 +106,19 @@ def test_input_file(input_file_path, q_dict, e_dict):
                         newtag = j
                 k.append(prevtag)
                 prevtag = newtag
+            k.reverse()
+            for index in range(0, len(k)):
+                (result_word, result_tag) = result_tokens[index].rsplit('/', 1)
+                if result_tag == k[index]:
+                    t += 1
+                else:
+                    # print('word: ' + tokens[index] + ', ' + 'tag: ' + tag + '. result_word: ' + result_word + ', result_tag: ' + result_tag)
+                    f += 1
+            if t + f != 0 and sentence_index % 50 == 0:
+                print(str(sentence_index) + ": " + str(t / (t + f)))
+        if t + f != 0:
+            print(str(sentence_index) + ": " + str(t / (t + f)))
+
 
 
 
@@ -130,13 +143,16 @@ def tag_word(dict1, dict2, word, e_dict, q_dict):
 
 
 def get_prob_of_word(tag1, tag2, key, e_values, q_dict):
-
-    e_value = e_values.get(key, 0)
-    q_dict_one_word_key = q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0)
-    q_dict_tag1_key = q_dict.get(tag1, {}).get(key, 0)
-    q_dict_tag1_tag2_key = q_dict.get((tag1, tag2), {}).get(key, 0)
-    q_value = (0.1 * q_dict_one_word_key) + (0.2 * q_dict_tag1_key) + (0.7 * q_dict_tag1_tag2_key)
-    return (0.5 * e_value) + (0.5 * q_value)
+    if (tag1, tag2, key) in tag_triple.keys():
+        return e_values.get(key, 0) * tag_triple[(tag1, tag2, key)]
+    else:
+        e_value = e_values.get(key, 0)
+        q_dict_one_word_key = q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0)
+        q_dict_tag1_key = q_dict.get(tag1, {}).get(key, 0)
+        q_dict_tag1_tag2_key = q_dict.get((tag1, tag2), {}).get(key, 0)
+        q_value = (0.1 * q_dict_one_word_key) + (0.2 * q_dict_tag1_key) + (0.7 * q_dict_tag1_tag2_key)
+        tag_triple[(tag1, tag2, key)] = q_value
+        return tag_triple[(tag1, tag2, key)] * e_value
 
 
 def merge_dicts(tag1, tag2, e_values, q_dict):
