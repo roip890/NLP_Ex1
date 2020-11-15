@@ -21,6 +21,28 @@ def getE(input_file):
             push_to_dict(e_dict, (word, tag))
             if str(word).endswith('tial'):
                 push_to_dict(e_dict, ('^*tial', tag))
+            if str(word).endswith('tion'):
+                push_to_dict(e_dict, ('^*tion', tag))
+            if str(word).endswith('sion'):
+                push_to_dict(e_dict, ('^*sion', tag))
+            if str(word).endswith('sious'):
+                push_to_dict(e_dict, ('^*ious', tag))
+            if str(word).endswith('age'):
+                push_to_dict(e_dict, ('^*age', tag))
+            if str(word).endswith('al'):
+                push_to_dict(e_dict, ('^*al', tag))
+            if str(word).endswith('wise'):
+                push_to_dict(e_dict, ('^*wise', tag))
+            if str(word).endswith('ity'):
+                push_to_dict(e_dict, ('^*ity', tag))
+            if str(word).endswith('ty'):
+                push_to_dict(e_dict, ('^*ty', tag))
+            if str(word).endswith('ment'):
+                push_to_dict(e_dict, ('^*ment', tag))
+            if str(word).endswith('ness'):
+                push_to_dict(e_dict, ('^*ness', tag))
+            if str(word).endswith('ship'):
+                push_to_dict(e_dict, ('^*ship', tag))
             if str(word).endswith('ing'):
                 push_to_dict(e_dict, ('^*ing', tag))
             if re.match('^[A-Z][a-z]*', word):

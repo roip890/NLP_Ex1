@@ -145,15 +145,14 @@ def tag_word(dict1, dict2, word, e_dict, q_dict):
 
 def get_prob_of_word(tag1, tag2, key, e_values, q_dict):
     if (tag1, tag2, key) in tag_triple.keys():
-        return e_values.get(key, 0)+ tag_triple[(tag1, tag2, key)]
+        return (0.5*tag_triple[(tag1, tag2, key)]) +(0.5 * e_values.get(key, 0))
     else:
-        e_value = e_values.get(key, 0)
         q_dict_one_word_key = q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0)
         q_dict_tag1_key = q_dict.get(tag1, {}).get(key, 0)
         q_dict_tag1_tag2_key = q_dict.get((tag1, tag2), {}).get(key, 0)
         q_value = (0.1 * q_dict_one_word_key) + (0.2 * q_dict_tag1_key) + (0.7 * q_dict_tag1_tag2_key)
         tag_triple[(tag1, tag2, key)] = q_value
-        return tag_triple[(tag1, tag2, key)] + e_value
+        return (0.5*tag_triple[(tag1, tag2, key)]) +(0.5 * e_values.get(key, 0))
 
 
 def merge_dicts(tag1, tag2, e_values, q_dict):
