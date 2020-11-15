@@ -85,30 +85,52 @@ def test_input_file(input_file_path, q_dict, e_dict):
             for index in range(2, len(tokens)):
                 prop.append(tag_word(prop[index - 2], prop[index - 1], tokens[index], e_dict, q_dict))
                 print(index)
-            break
-            output_text += '\n'
-        print(t / (t + f))
+            max = 0
+            maxtag =""
+            prevtag = ""
+            k = []
+            #looking for the best place to start at the end
+            for i in prop[len(prop)-1]:
+                for j in prop[len(prop)-1][i]:
+                    if(max < prop[len(prop)-1][i][j]):
+                        max = prop[len(prop)-1][i][j]
+                        maxtag = i
+                        prevtag = j
+            k.append(maxtag)
+            newtag = ""
+            for i in range(len(prop)-2, -1,-1):
+                max = 0
+                for j in prop[i][prevtag]:
+                    if(prop[i][prevtag][j]>max):
+                        max = prop[i][prevtag][j]
+                        newtag = j
+                k.append(prevtag)
+                prevtag = newtag
+
 
 
 def tag_word(dict1, dict2, word, e_dict, q_dict):
     result_dict = {}
-    for word_back in q_dict[ONE_WORD_TOKEN].keys():
-        for double_word_back in q_dict[ONE_WORD_TOKEN].keys():
-            if word in e_dict.keys():
-                e_values = e_dict[word]
-            else:
-                e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
-            for key in q_dict[ONE_WORD_TOKEN].keys():
-                if key not in result_dict.keys():
-                    result_dict[key] = {}
-                if word_back not in result_dict[key].keys():
-                    result_dict[key][word_back] = {}
-                result_dict[key][word_back] = get_prob_of_word(double_word_back, word_back, key, e_values, q_dict)*dict1[word_back][double_word_back]*dict2[double_word_back][word_back]
-
+    for key in q_dict[ONE_WORD_TOKEN].keys():
+        for outer in dict2:
+            max = 0
+            inner_tag = ""
+            for inner in dict2[outer]:
+                if word in e_dict.keys():
+                    e_values = e_dict[word]
+                else:
+                    e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
+                if get_prob_of_word(inner, outer, key, e_values, q_dict) * dict2[outer][inner] > max:
+                    max =get_prob_of_word(outer, inner, key, e_values, q_dict) * dict2[outer][inner]
+                    inner_tag = outer
+            if key not in result_dict.keys():
+                result_dict[key] = {}
+            result_dict[key][inner_tag] = max
     return result_dict
 
 
 def get_prob_of_word(tag1, tag2, key, e_values, q_dict):
+
     e_value = e_values.get(key, 0)
     q_dict_one_word_key = q_dict.get(ONE_WORD_TOKEN, {}).get(key, 0)
     q_dict_tag1_key = q_dict.get(tag1, {}).get(key, 0)
