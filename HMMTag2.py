@@ -1,14 +1,21 @@
 import sys
 import operator
 import regex as re
+import math
 
-# w1 = 0.33
-# w2 = 0.33
-# w3 = 0.34
+EPSILON = sys.float_info.min
+LOG_EPSILON = math.log(EPSILON)
 ONE_WORD_TOKEN = '$ONE_WORD$'
+START_TOKEN = '$START$'
+END_TOKEN = '$END$'
 tags = []
 tags_tuple = []
-tags_triple = {}
+tags_transition_probs = {}
+q_dict = {
+    ONE_WORD_TOKEN: {}
+}
+e_dict = {}
+
 
 def ensure_value_in_dict(dict, value):
     if value not in dict.keys():
@@ -16,10 +23,6 @@ def ensure_value_in_dict(dict, value):
 
 
 def parse_training_data(q_mle_path, e_mle_path):
-    q_dict = {
-        ONE_WORD_TOKEN: {}
-    }
-    e_dict = {}
     with open(q_mle_path) as q_mle_file, open(e_mle_path) as e_mle_file:
 
         # q dict
@@ -51,7 +54,8 @@ def parse_training_data(q_mle_path, e_mle_path):
                 e_dict[word] = {}
             e_dict[word][tag] = int(value)
 
-    # normalize dicts
+
+def normalize_data():
     for word in e_dict:
         word_e_value = e_dict[word]
         e_values_sum = sum(word_e_value.values())
@@ -65,92 +69,109 @@ def parse_training_data(q_mle_path, e_mle_path):
             for key in q_dict[tag].keys():
                 q_dict[tag][key] = q_dict[tag][key] / q_dict_tag_sum
 
-    tags = list(q_dict[ONE_WORD_TOKEN].keys())
 
-    tags_tuple = []
+def prepare_tags_probs():
+    tags.extend(list(q_dict[ONE_WORD_TOKEN].keys()))
+
     for t1 in tags:
         for t2 in tags:
-            tags_tuple.append((t1, t2))
+            tags_tuple.append((t2, t1))
+            for t3 in tags:
+                q_dict_one_word_key = q_dict.get(ONE_WORD_TOKEN, {}).get(t1, EPSILON)
+                q_dict_tag1_key = q_dict.get(t2, {}).get(t1, EPSILON)
+                q_dict_tag1_tag2_key = q_dict.get((t3, t2), {}).get(t1, EPSILON)
+                q_value = (0.1 * q_dict_one_word_key) + (0.2 * q_dict_tag1_key) + (0.7 * q_dict_tag1_tag2_key)
+                tags_transition_probs[(t3, t2, t1)] = q_value
 
-    return q_dict, e_dict, tags, tags_tuple
 
-
-def test_input_file(input_file_path, q_dict, e_dict):
+def test_input_file(input_file_path):
+    acc_true_count = 0
+    acc_false_count = 0
+    acc_true_words = []
+    acc_false_words = []
     output_text = ''
     with open(input_file_path) as input_file, open('data/ass1-tagger-dev') as result_file:
         result_sentences = result_file.readlines()
         sentences = input_file.readlines()
-        f = 0
-        t = 0
         for sentence_index in range(0, len(sentences)):
-            if t + f != 0:
-                print(str(sentence_index) + ": " + str(t / (t + f)))
-            sentence = '$START$ $START$ ' + sentences[sentence_index].strip()
-            result_sentence = '$START$/$START$ $START$/$START$ ' + result_sentences[sentence_index].strip()
+            output_words = []
+            result_sentence = result_sentences[sentence_index].strip()
+            sentence = sentences[sentence_index].strip()
             tokens = sentence.split(' ')
-            result_tokens = result_sentence.split(' ')
-            v_list = [
-                {key: max(q_dict[key].items(), key=operator.itemgetter(1)) for key in q_dict if isinstance(key, tuple)},
-                {key: max(q_dict[key].items(), key=operator.itemgetter(1)) for key in q_dict if isinstance(key, tuple)}
+
+            # init start
+            pie_start = {}
+            for u, v in tags_tuple:
+                pie_start[(u, v)] = (START_TOKEN, LOG_EPSILON)
+
+            pie = [
+                (START_TOKEN, pie_start)
             ]
-            if sentence_index == 3:
-                print('3')
-            for index in range(2, len(tokens)):
-                tag = tag_word(tokens[index], e_dict, q_dict, v_list[index-1], v_list)
-                output_text += tokens[index] + '/' + str(tag) + ' '
-                (result_word, result_tag) = result_tokens[index].rsplit('/', 1)
-                if result_tag == tag:
-                    t += 1
+
+            # fill pie matrix
+            for k in range(len(tokens)):
+                pie_k_prev = pie[k]
+                if tokens[k] in e_dict.keys():
+                    e_values = e_dict[tokens[k]]
                 else:
-                    print('word: ' + tokens[index] + ', ' + 'tag: ' + tag + '. result_word: ' + result_word + ', result_tag: ' + result_tag)
-                    f += 1
-            output_text += '\n'
-        print(t / (t + f))
+                    e_values = {} if get_word_key(tokens[k]) not in e_dict.keys() else e_dict[get_word_key(tokens[k])]
 
+                pie_k = {}
+                for u, v in tags_tuple:
+                    max_dict = {w: get_prob_of_word(u, v, w, e_values, pie_k_prev[1]) for w in tags}
+                    max_arg = max(max_dict.items(), key=operator.itemgetter(1))[0]
+                    max_value = max_dict[max_arg]
+                    pie_k[(u, v)] = (max_arg, max_value)
+                # pie_k = sorted(pie_k.items(), key=lambda x: x[1][1], reverse=True)
+                pie.append((tokens[k], pie_k))
 
-def tag_word(word, e_dict, q_dict, v_1, v_list):
-    if word in e_dict.keys():
-        e_values = e_dict[word]
-    else:
-        e_values = {} if get_word_key(word) not in e_dict.keys() else e_dict[get_word_key(word)]
+            pie_end = {(u, v): get_prob_of_end(u, v, pie[len(pie) - 1][1]) for u, v in tags_tuple}
+            t1, t2 = max(pie_end.items(), key=operator.itemgetter(1))[0]
 
-    v_i = {}
-    for t1, t2 in tags_tuple:
-        v_i_t_dict = {t: get_prob_of_word(t1, t2, t, e_values, q_dict, v_1) for t in tags}
-        v_i_t = max(v_i_t_dict.items(), key=operator.itemgetter(1))[0]
-        v_i[(t1, t2)] = (v_i_t, v_i_t_dict[v_i_t])
-    # v_i = {key: get_prob_of_word(tag1, tag2, key, e_values, q_dict, v_1, v_2) for key in tags_tuple}
-
-    v_list.append(v_i)
-    v__sorted = sorted(v_i.items(), key=lambda x: x[1][1], reverse=True)
-    res = v__sorted[0][1][0]
-
-    return res
-
-def get_prob_of_word(tag1, tag2, t, e_values, q_dict, v_1):
-    if (tag1, tag2, t) in tags_triple.keys():
-        q_value = tags_triple[(tag1, tag2, t)]
-    else:
-        q_dict_one_word_key = q_dict.get(ONE_WORD_TOKEN, {}).get(t, 0)
-        q_dict_tag1_key = q_dict.get(tag2, {}).get(t, 0)
-        q_dict_tag1_tag2_key = q_dict.get((tag1, tag2), {}).get(t, 0)
-        q_value = (0.1 * q_dict_one_word_key) + (0.2 * q_dict_tag1_key) + (0.7 * q_dict_tag1_tag2_key)
-
-    e_value = e_values.get(t, 0)
-    v_1_key = v_1.get((tag2, t), 0)
-    if isinstance(v_1_key, tuple):
-        v_1_key = v_1_key[1]
-
-    return e_value + q_value + v_1_key
+            # back propagation
+            for index in range(len(pie) - 1, 0, -1):
+                word = pie[index][0]
+                value = pie[index][1][(t1, t2)][0]
+                t1 = t2
+                t2 = value
+                if word != START_TOKEN and word != END_TOKEN:
+                    output_words.append('/'.join([word, value]))
+            output_sentence = ' '.join(reversed(output_words))
 
 
 
-def merge_dicts(tag1, tag2, e_values, q_dict):
-    q_dict_one_word_keys = q_dict.get(ONE_WORD_TOKEN, {}).keys()
-    q_dict_tag1_keys = q_dict.get(tag1, {}).keys()
-    q_dict_tag1_tag2_keys = q_dict.get((tag1, tag2), {}).keys()
-    merged_keys = list(e_values) + list(q_dict_one_word_keys) + list(q_dict_tag1_keys) + list(q_dict_tag1_tag2_keys)
-    return set(merged_keys)
+            # # back propagation
+            # for index in range(len(v_list) - 1, 0, -1):
+            #     word = v_list[index][0]
+            #     value_dict = sorted(v_list[index][1].items(), key=lambda x: x[1][1], reverse=True)
+            #     value = value_dict[0][1][0]
+            #     if word != START_TOKEN and word != END_TOKEN:
+            #         output_words.append('/'.join([word, value]))
+            # output_sentence = ' '.join(reversed(output_words))
+
+            # check
+            true_count, false_count, true_words, false_words = check_text(output_sentence, result_sentence)
+            acc_true_count += true_count
+            acc_false_count += false_count
+            acc_true_words.extend(true_words)
+            acc_false_words.extend(false_words)
+            # print(str(sentence_index) + ': ' + str(true_count / (true_count + false_count)) + str(false_words))
+            print('acc: ' + str(acc_true_count / (acc_true_count + acc_false_count)) + ' false_words: '
+                  + str(len(acc_false_words)) + ' false_words_set: ' + str(len(set(acc_false_words)))
+                  + ' false_words_set: ' + str(set(acc_false_words)))
+
+
+def get_prob_of_word(u, v, w, e_values, pie_k):
+    q_value = tags_transition_probs.get((u, v, w), EPSILON)
+    e_value = e_values.get(w, EPSILON)
+    pie_k_key = pie_k.get((u, v), ('_', LOG_EPSILON))[1]
+    return math.log(e_value) + math.log(q_value) + pie_k_key
+
+def get_prob_of_end(u, v, pie_k):
+    q_value = tags_transition_probs.get((u, v, END_TOKEN), EPSILON)
+    pie_k_key = pie_k.get((u, v), ('_', LOG_EPSILON))[1]
+    return math.log(q_value) + pie_k_key
+
 
 
 def get_word_key(word):
@@ -169,6 +190,31 @@ def get_word_key(word):
     return word
 
 
+def check_text(text, result_text):
+    true_count = 0
+    false_count = 0
+    true_words = []
+    false_words = []
+    sentences = str(text).split('\n')
+    result_sentences = str(result_text).split('\n')
+    for sentence_index in range(0, min(len(sentences), len(result_sentences))):
+        result_sentence = result_sentences[sentence_index].strip()
+        sentence = sentences[sentence_index].strip()
+        result_tokens = result_sentence.split(' ')
+        tokens = sentence.split(' ')
+        for index in range(0, min(len(tokens), len(result_tokens))):
+            (result_word, result_tag) = result_tokens[index].rsplit('/', 1)
+            (word, tag) = tokens[index].rsplit('/', 1)
+            if result_tag == tag:
+                true_count += 1
+                true_words.append(word)
+            else:
+                # print('word: ' + tokens[index] + ', ' + 'tag: ' + tag + '. result_word: ' + result_word + ', result_tag: ' + result_tag)
+                false_words.append(word)
+                false_count += 1
+
+    return true_count, false_count, true_words, false_words
+
 if len(sys.argv) >= 6:
     input_file_path = sys.argv[1]
     q_mle_path = sys.argv[2]
@@ -176,5 +222,7 @@ if len(sys.argv) >= 6:
     result_file_path = sys.argv[4]
     extra_file_path = sys.argv[5]
 
-    q_dict, e_dict, tags, tags_tuple = parse_training_data(q_mle_path, e_mle_path)
-    test_input_file(input_file_path, q_dict, e_dict)
+    parse_training_data(q_mle_path, e_mle_path)
+    normalize_data()
+    prepare_tags_probs()
+    test_input_file(input_file_path)

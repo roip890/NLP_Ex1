@@ -1,6 +1,8 @@
 import regex as re
 import sys
 
+START_TOKEN = '$START$'
+END_TOKEN = '$END$'
 
 def push_to_dict(dict, value):
     if value in dict.keys():
@@ -35,12 +37,17 @@ def getQ(input_file):
     with open(input_file) as content_file:
         sentences = content_file.readlines()
         for sentence in sentences:
-            sentence = '$START$/$START$ $START$/$START$ ' + sentence
+            sentence = ' '.join([
+                '/'.join([START_TOKEN, START_TOKEN]),
+                '/'.join([START_TOKEN, START_TOKEN]),
+                sentence.strip(),
+                '/'.join([END_TOKEN, END_TOKEN])
+            ])
             tokens = sentence.split()
-            for index in range(0, len(tokens) - 2):
-                (w1, t1) = tokens[index].rsplit('/', 1)
-                (w2, t2) = tokens[index+1].rsplit('/', 1)
-                (w3, t3) = tokens[index+2].rsplit('/', 1)
+            for index in range(2, len(tokens)):
+                (w1, t1) = tokens[index-2].rsplit('/', 1)
+                (w2, t2) = tokens[index-1].rsplit('/', 1)
+                (w3, t3) = tokens[index].rsplit('/', 1)
                 # single
                 push_to_dict(q_dict, tuple([t1]))
                 # tuple
@@ -49,11 +56,11 @@ def getQ(input_file):
                 push_to_dict(q_dict, (t1, t2, t3))
 
             # last values
-            (w_before_last, t_before_last) = tokens[len(tokens)-1].rsplit('/', 1)
-            (w_last, t_last) = tokens[len(tokens)-2].rsplit('/', 1)
-            push_to_dict(q_dict, tuple([t_before_last]))
-            push_to_dict(q_dict, tuple([t_last]))
-            push_to_dict(q_dict, (t_before_last, t_last))
+            # (w_before_last, t_before_last) = tokens[len(tokens)-1].rsplit('/', 1)
+            # (w_last, t_last) = tokens[len(tokens)-2].rsplit('/', 1)
+            # push_to_dict(q_dict, tuple([t_before_last]))
+            # push_to_dict(q_dict, tuple([t_last]))
+            # push_to_dict(q_dict, (t_before_last, t_last))
 
     return q_dict
 

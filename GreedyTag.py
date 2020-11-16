@@ -2,11 +2,11 @@ import sys
 import operator
 import regex as re
 
-# w1 = 0.33
-# w2 = 0.33
-# w3 = 0.34
 ONE_WORD_TOKEN = '$ONE_WORD$'
-
+START_TOKEN = '$START$'
+END_TOKEN = '$END$'
+q_dict = {}
+e_dict = {}
 
 def ensure_value_in_dict(dict, value):
     if value not in dict.keys():
@@ -66,7 +66,7 @@ def parse_training_data(q_mle_path, e_mle_path):
     return q_dict, e_dict
 
 
-def test_input_file(input_file_path, q_dict, e_dict):
+def test_input_file(input_file_path):
     output_text = ''
     with open(input_file_path) as input_file, open('data/ass1-tagger-dev') as result_file:
         result_sentences = result_file.readlines()
@@ -74,30 +74,46 @@ def test_input_file(input_file_path, q_dict, e_dict):
         f = 0
         t = 0
         for sentence_index in range(0, len(sentences)):
-            if t + f != 0:
-                print(str(sentence_index) + ": " + str(t / (t + f)))
-            sentence = '$START$ $START$ ' + sentences[sentence_index].strip()
-            result_sentence = '$START$/$START$ $START$/$START$ ' + result_sentences[sentence_index].strip()
-            tokens = sentence.split(' ')
+            # -----DELETE - START------
+            result_sentence = ' '.join([
+                '/'.join([START_TOKEN, START_TOKEN]),
+                '/'.join([START_TOKEN, START_TOKEN]),
+                result_sentences[sentence_index].strip(),
+                '/'.join([END_TOKEN, END_TOKEN])
+            ])
             result_tokens = result_sentence.split(' ')
-            tag1 = '$START$'
-            tag2 = '$START$'
-            for index in range(2, len(tokens)):
-                tag3 = tag_word(tag1, tag2, tokens[index], e_dict, q_dict)
+            # -----DELETE - END------
+            sentence = ' '.join([
+                START_TOKEN,
+                START_TOKEN,
+                sentences[sentence_index].strip(),
+                END_TOKEN
+            ])
+            tokens = sentence.split(' ')
+            tag1 = tokens[0]
+            tag2 = tokens[1]
+            for index in range(2, len(tokens)-1):
+                tag3 = tag_word(tag1, tag2, tokens[index])
                 tag1 = tag2
                 tag2 = tag3
                 output_text += tokens[index] + '/' + str(tag3) + ' '
+                # -----DELETE - START------
                 (result_word, result_tag) = result_tokens[index].rsplit('/', 1)
                 if result_tag == tag3:
                     t += 1
                 else:
                     # print('word: ' + tokens[index] + ', ' + 'tag: ' + tag3 + '. result_word: ' + result_word + ', result_tag: ' + result_tag)
                     f += 1
+                # -----DELETE - END------
             output_text += '\n'
+            # -----DELETE - START------
+            if t + f != 0:
+                print(str(sentence_index) + ": " + str(t / (t + f)))
+            # -----DELETE - END------
         print(t / (t + f))
 
 
-def tag_word(tag1, tag2, word, e_dict, q_dict):
+def tag_word(tag1, tag2, word):
     if word in e_dict.keys():
         e_values = e_dict[word]
     else:
@@ -153,4 +169,4 @@ if len(sys.argv) >= 6:
     extra_file_path = sys.argv[5]
 
     q_dict, e_dict = parse_training_data(q_mle_path, e_mle_path)
-    test_input_file(input_file_path, q_dict, e_dict)
+    test_input_file(input_file_path)
