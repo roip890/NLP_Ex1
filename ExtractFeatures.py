@@ -28,14 +28,28 @@ def extract_features(input_file_path, output_file_path):
 
 def get_word_features(word, prev_tag):
     features = []
-    features.append(('form', word))
+    word_suffix = get_suffix(word)
+    word_prefix = get_prefix(word)
+    word_type = get_type(word)
+    # prev tag
     features.append(('pt', prev_tag))
-    if get_suffix(word) is not None:
-        features.append(('suff', get_suffix(word)))
-    if get_prefix(word) is not None:
-        features.append(('pref', get_prefix(word)))
-    if get_type(word) is not None:
-        features.append(('type', get_type(word)))
+    # suffix
+    if word_suffix is not None:
+        features.append(('suff', word_suffix))
+    # prefix
+    if word_prefix is not None:
+        features.append(('pref', word_prefix))
+    # type
+    if word_type is not None:
+        features.append(('type', word_type))
+    # form
+    form = word
+    if word_prefix is not None:
+        form = form[len(word_prefix):]
+    if word_suffix is not None and len(form) > len(word_suffix):
+        form = form[:len(form) - len(word_suffix)]
+    features.append(('form', form))
+
     return features
 
 

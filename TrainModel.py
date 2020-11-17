@@ -35,20 +35,28 @@ def get_data(features_file_path):
             labels.append(label)
     return np.array(labels), np.array(features)
 
+
+def train_model(features, labels):
+    ohe = OneHotEncoder()
+    features = np.delete(features, 0, 1)
+    one_hot_features = ohe.fit_transform(features).toarray()
+    x_train, x_test, y_train, y_test = train_test_split(one_hot_features, labels, test_size=0.2, random_state=30)
+    lr = LogisticRegression(max_iter=100, verbose=1)
+    lr.fit(x_train, y_train)
+
+    y_predict = lr.predict(x_test)
+    f = 0
+    t = 0
+    for i in range(len(y_predict)):
+        if y_predict[i] == y_test[i]:
+            t += 1
+        else:
+            f += 1
+
+    print(t / (f + t))
+
 if len(sys.argv) >= 1:
     features_file_path = sys.argv[1]
 
     labels, features = get_data(features_file_path)
-    # le = LabelEncoder()
-    # le_features = le.fit(features).toarray()
-    # x_train, x_test, y_train, y_test = train_test_split(le_features, labels, test_size=0.33, random_state=42)
-    ohe = OneHotEncoder()
-    features = np.delete(features, 0, 1)
-    one_hot_features = ohe.fit_transform(features).toarray()
-    x_train, x_test, y_train, y_test = train_test_split(one_hot_features, labels, test_size=0.50, random_state=42)
-    lr = LogisticRegression()
-    lr.fit(x_train, y_train)
-    print(x_test)
-    print(y_test)
-    print(lr.predict(x_test))
-
+    train_model(features, labels)
