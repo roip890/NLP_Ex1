@@ -1,8 +1,6 @@
 import sys
-import operator
 import regex as re
 import math
-import itertools
 
 EPSILON = sys.float_info.min
 LOG_EPSILON = math.log(EPSILON, 10)
@@ -16,7 +14,9 @@ q_dict = {
     ONE_WORD_TOKEN: {}
 }
 e_dict = {}
-
+possible_prev_tags = {}
+possible_prev_tags_of_tuple = {}
+possible_prev_tuples = {}
 
 def ensure_value_in_dict(dict, value):
     if value not in dict.keys():
@@ -40,10 +40,26 @@ def parse_training_data(q_mle_path, e_mle_path):
             if len(tags) == 2:
                 ensure_value_in_dict(q_dict, tags[0])
                 q_dict[tags[0]][tags[1]] = int(value)
+                if tags[1] not in possible_prev_tags.keys():
+                    possible_prev_tags[tags[1]] = []
+                if tags[0] not in possible_prev_tags[tags[1]]:
+                    possible_prev_tags[tags[1]].append(tags[0])
 
             if len(tags) == 3:
                 ensure_value_in_dict(q_dict, (tags[0], tags[1]))
                 q_dict[(tags[0], tags[1])][tags[2]] = int(value)
+                if tags[2] not in possible_prev_tuples.keys():
+                    possible_prev_tuples[tags[2]] = []
+                if (tags[0], tags[1]) not in possible_prev_tuples[tags[2]]:
+                    possible_prev_tuples[tags[2]].append((tags[0], tags[1]))
+                if tags[2] not in possible_prev_tags.keys():
+                    possible_prev_tags[tags[2]] = []
+                if tags[1] not in possible_prev_tags[tags[2]]:
+                    possible_prev_tags[tags[2]].append(tags[1])
+                if (tags[1], tags[2]) not in possible_prev_tags_of_tuple.keys():
+                    possible_prev_tags_of_tuple[(tags[1], tags[2])] = []
+                if tags[0] not in possible_prev_tags_of_tuple[(tags[1], tags[2])]:
+                    possible_prev_tags_of_tuple[(tags[1], tags[2])].append(tags[0])
 
         # e dict
         e_mle_lines = e_mle_file.readlines()
@@ -84,6 +100,7 @@ def prepare_tags_probs():
                 q_value = (0.05 * q_dict_one_word_key) + (0.2 * q_dict_tag1_key) + (0.75 * q_dict_tag1_tag2_key)
                 tags_transition_probs[(t3, t2, t1)] = q_value
 
+    # tag_prev_tuple = {}
     # for q in q_dict:
     #     if isinstance(q, tuple) and len(q) == 2:
     #         tags_tuple.append(q)
@@ -120,14 +137,28 @@ def test_input_file(input_file_path):
                     e_values = {} if get_word_key(tokens[k]) not in e_dict.keys() else e_dict[get_word_key(tokens[k])]
 
                 pie_k = {}
-                for u, v in tags_tuple:
-                    max_dict = {w: get_prob_of_word(u, v, w, e_values, pie_k_prev[1]) for w in tags}
-                    max_arg = max(max_dict.items(), key=lambda x: x[1])[0]
-                    max_value = max_dict[max_arg]
-                    pie_k[(u, v)] = (max_arg, max_value)
+                # after pruning
+                for v in tags:
+                    for u in possible_prev_tags.get(v, tags):
+                        max_value = -math.inf
+                        max_arg = START_TOKEN
+                        for w in possible_prev_tags.get(u, tags):
+                        # for w in possible_prev_tags_of_tuple.get((u, v), tags):
+                            next = get_prob_of_word(u, v, w, e_values, pie_k_prev[1])
+                            if next >= max_value:
+                                max_value = next
+                                max_arg = w
+                        pie_k[(u, v)] = (max_arg, max_value)
+
+                # before pruning
+                # for u, v in tags_tuple:
+                #     max_dict = {w: get_prob_of_word(u, v, w, e_values, pie_k_prev[1]) for w in tags}
+                #     max_arg = max(max_dict.items(), key=lambda x: x[1])[0]
+                #     max_value = max_dict[max_arg]
+                #     pie_k[(u, v)] = (max_arg, max_value)
                 pie.append((tokens[k], pie_k))
 
-            pie_end = {(u, v): get_prob_of_end(u, v, pie[len(pie) - 1][1]) for u, v in tags_tuple}
+            pie_end = {(u, v): get_prob_of_end(u, v, pie[len(pie) - 1][1]) for u, v in possible_prev_tuples.get(END_TOKEN)}
             y2, y3 = max(pie_end.items(), key=lambda x: x[1])[0]
 
             output_words.append('/'.join([pie[len(pie) - 1][0], y3]))
@@ -136,7 +167,10 @@ def test_input_file(input_file_path):
             # back propagation
             for index in range(len(pie) - 3, 0, -1):
                 word = pie[index+2][0]
-                y1 = pie[index+2][1][(y2, y3)][0]
+                try:
+                    y1 = pie[index+2][1][(y2, y3)][0]
+                except:
+                    print('Not Found!')
                 y3 = y2
                 y2 = y1
                 if word != START_TOKEN and word != END_TOKEN:
