@@ -31,11 +31,16 @@ def extract_features(input_file_path, output_file_path):
                 else:
                     Word_count[form] = 1
         for sentence in sentences:
-            sentence = sentence.strip()
+            sentence =  sentence = ' '.join([
+                '/'.join([START_TOKEN, START_TOKEN]),
+                '/'.join([START_TOKEN, START_TOKEN]),
+                sentence.strip(),
+                '/'.join([END_TOKEN, END_TOKEN])
+            ])
             tokens = sentence.split(' ')
             prev_tag = START_TOKEN
-            for token in tokens:
-                (word, tag) = token.rsplit('/', 1)
+            for index in range(2, len(tokens)):
+                (word, tag) = tokens[index].rsplit('/', 1)
                 features = get_word_features(word, prev_tag)
                 output_file_content += tag + ' ' + ' '.join(['='.join(feature) for feature in features]) + '\n'
                 prev_tag = tag

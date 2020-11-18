@@ -48,6 +48,8 @@ def train_model(features, labels):
     lr = LogisticRegression(max_iter=100, verbose=1,n_jobs = -1)
     lr.fit(x_train, y_train)
     pickle.dump(lr, open("linear_regression", 'wb'))
+    with open("feature_map_file.txt","w+") as f:
+        f.write(' '.join(v.get_feature_names()))
     y_predict = lr.predict(x_test)
     f = 0
     t = 0
