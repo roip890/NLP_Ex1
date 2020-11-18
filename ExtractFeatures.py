@@ -1,6 +1,5 @@
 import regex as re
 import sys
-
 START_TOKEN = '$START$'
 END_TOKEN = '$END$'
 Word_count = {}
@@ -63,7 +62,7 @@ def get_word_features(word, prev_tag):
         form = form[len(word_prefix):]
     if word_suffix is not None and len(form) > len(word_suffix):
         form = form[:len(form) - len(word_suffix)]
-    if Word_count[form] > 200:
+    if Word_count[form] > 100:
     # form
         features.append(('form', form))
 

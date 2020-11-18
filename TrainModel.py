@@ -4,6 +4,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.model_selection import train_test_split
+import pickle
 
 FEATURES_INDEX = {
     'form': 0,
@@ -46,7 +47,7 @@ def train_model(features, labels):
     x_train, x_test, y_train, y_test = train_test_split(dict_feature, labels, test_size=0.2, random_state=30)
     lr = LogisticRegression(max_iter=100, verbose=1,n_jobs = -1)
     lr.fit(x_train, y_train)
-
+    pickle.dump(lr, open("linear_regression", 'wb'))
     y_predict = lr.predict(x_test)
     f = 0
     t = 0
