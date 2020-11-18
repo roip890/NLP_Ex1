@@ -67,7 +67,7 @@ def get_word_features(word, prev_tag, prev_prev_tag):
     #     form = form[len(word_prefix):]
     # if word_suffix is not None and len(form) > len(word_suffix):
     #     form = form[:len(form) - len(word_suffix)]
-    if Word_count[form] > 100:
+    if Word_count[form] > 30:
     # form
         features.append(('form', form))
 
