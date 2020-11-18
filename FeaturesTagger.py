@@ -70,6 +70,7 @@ def get_type(word):
     if re.match('^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$', word):
         return 'date'
     return None
+
 def check_text(text, result_text):
     true_count = 0
     false_count = 0
@@ -107,7 +108,7 @@ with open(feature_map_file,"r") as input_file:
     features = input_file.readline()
     features = features.split(" ")
     for index in range(len(features)):
-        (feature, value) = features[index].split("=",1)
+        (feature, value) = features[index].split("=", 1)
         features_dict[(feature,value)] = index
 output=""
 output_sentences =[]

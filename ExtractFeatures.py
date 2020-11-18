@@ -20,39 +20,39 @@ def extract_features(input_file_path, output_file_path):
             for token in tokens:
                 (word, tag) = token.rsplit('/', 1)
                 form = word
-                word_suffix = get_suffix(word)
-                word_prefix = get_prefix(word)
-                if word_prefix is not None:
-                    form = form[len(word_prefix):]
-                if word_suffix is not None and len(form) > len(word_suffix):
-                    form = form[:len(form) - len(word_suffix)]
+                # word_suffix = get_suffix(word)
+                # word_prefix = get_prefix(word)
+                # if word_prefix is not None:
+                #     form = form[len(word_prefix):]
+                # if word_suffix is not None and len(form) > len(word_suffix):
+                #     form = form[:len(form) - len(word_suffix)]
                 if form in Word_count.keys():
                     Word_count[form] += 1
                 else:
                     Word_count[form] = 1
         for sentence in sentences:
-            sentence =  sentence = ' '.join([
+            sentence = ' '.join([
                 '/'.join([START_TOKEN, START_TOKEN]),
                 '/'.join([START_TOKEN, START_TOKEN]),
-                sentence.strip(),
-                '/'.join([END_TOKEN, END_TOKEN])
+                sentence.strip()
             ])
             tokens = sentence.split(' ')
-            prev_tag = START_TOKEN
             for index in range(2, len(tokens)):
                 (word, tag) = tokens[index].rsplit('/', 1)
-                features = get_word_features(word, prev_tag)
+                (prev_word, prev_tag) = tokens[index-1].rsplit('/', 1)
+                (prev_prev_word, prev_prev_tag) = tokens[index-2].rsplit('/', 1)
+                features = get_word_features(word, prev_tag, prev_prev_tag)
                 output_file_content += tag + ' ' + ' '.join(['='.join(feature) for feature in features]) + '\n'
-                prev_tag = tag
         output_file.write(output_file_content)
 
-def get_word_features(word, prev_tag):
+def get_word_features(word, prev_tag, prev_prev_tag):
     features = []
     word_suffix = get_suffix(word)
     word_prefix = get_prefix(word)
     word_type = get_type(word)
     # prev tag
     features.append(('pt', prev_tag))
+    features.append(('ppt', prev_prev_tag))
     # suffix
     if word_suffix is not None:
         features.append(('suff', word_suffix))
@@ -63,10 +63,10 @@ def get_word_features(word, prev_tag):
     if word_type is not None:
         features.append(('type', word_type))
     form = word
-    if word_prefix is not None:
-        form = form[len(word_prefix):]
-    if word_suffix is not None and len(form) > len(word_suffix):
-        form = form[:len(form) - len(word_suffix)]
+    # if word_prefix is not None:
+    #     form = form[len(word_prefix):]
+    # if word_suffix is not None and len(form) > len(word_suffix):
+    #     form = form[:len(form) - len(word_suffix)]
     if Word_count[form] > 100:
     # form
         features.append(('form', form))
