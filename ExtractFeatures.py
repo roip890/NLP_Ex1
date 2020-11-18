@@ -3,7 +3,7 @@ import sys
 
 START_TOKEN = '$START$'
 END_TOKEN = '$END$'
-
+Word_count = {}
 def push_to_dict(dict, value):
     if value in dict.keys():
         dict[value] = dict[value] + 1
@@ -15,6 +15,15 @@ def extract_features(input_file_path, output_file_path):
     output_file_content = ''
     with open(input_file_path) as input_file, open(output_file_path, 'w+') as output_file:
         sentences = input_file.readlines()
+        for sentence in sentences:
+            sentence = sentence.strip()
+            tokens = sentence.split(' ')
+            for token in tokens:
+                (word, tag) = token.rsplit('/', 1)
+                if word in Word_count.keys():
+                    Word_count[word] += 1
+                else:
+                    Word_count[word] = 1
         for sentence in sentences:
             sentence = sentence.strip()
             tokens = sentence.split(' ')
@@ -42,13 +51,15 @@ def get_word_features(word, prev_tag):
     # type
     if word_type is not None:
         features.append(('type', word_type))
+    if Word_count[word] > 120:
     # form
-    form = word
-    if word_prefix is not None:
-        form = form[len(word_prefix):]
-    if word_suffix is not None and len(form) > len(word_suffix):
-        form = form[:len(form) - len(word_suffix)]
-    features.append(('form', form))
+        form = word
+        if word_prefix is not None:
+            form = form[len(word_prefix):]
+        if word_suffix is not None and len(form) > len(word_suffix):
+            form = form[:len(form) - len(word_suffix)]
+
+        features.append(('form', form))
 
     return features
 
@@ -125,6 +136,5 @@ def get_type(word):
 if len(sys.argv) >= 2:
     corpus_input_file_path = sys.argv[1]
     corpus_output_file_path = sys.argv[2]
-
     # generate file
     extract_features(corpus_input_file_path, corpus_output_file_path)
