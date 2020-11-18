@@ -40,9 +40,9 @@ def extract_features(input_file_path, output_file_path):
             tags_sentence_counter = {}
             for index in range(2, len(tokens)):
                 (word, tag) = tokens[index].rsplit('/', 1)
-                if tag not in tags_sentence_counter.keys():
-                    tags_sentence_counter[tag] = 0
-                tags_sentence_counter[tag] += 1
+                #if tag not in tags_sentence_counter.keys():
+                #    tags_sentence_counter[tag] = 0
+                #tags_sentence_counter[tag] += 1
                 (prev_word, prev_tag) = tokens[index-1].rsplit('/', 1)
                 (prev_prev_word, prev_prev_tag) = tokens[index-2].rsplit('/', 1)
                 features = get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter)
@@ -67,13 +67,13 @@ def get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter):
     if word_type is not None:
         features.append(('type', word_type))
     form = word
-    for key in tags_sentence_counter:
-        features.append((key, str(tags_sentence_counter[key])))
+    #for key in tags_sentence_counter:
+    #    features.append((key, str(tags_sentence_counter[key])))
     # if word_prefix is not None:
     #     form = form[len(word_prefix):]
     # if word_suffix is not None and len(form) > len(word_suffix):
     #     form = form[:len(form) - len(word_suffix)]
-    if Word_count[form] > 30:
+    if Word_count[form] > 200:
     # form
         features.append(('form', form))
 
@@ -147,6 +147,12 @@ def get_type(word):
         return 'number'
     if re.match('^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$', word):
         return 'date'
+    if word.isalpha():
+        return 'alpa'
+    if word.isupper():
+        return 'upper'
+    if word.islower():
+        return 'lower'
     return None
 
 if len(sys.argv) >= 2:

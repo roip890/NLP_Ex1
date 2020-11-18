@@ -23,7 +23,6 @@ def get_data(features_file_path):
             labels.append(label)
     return np.array(labels), np.array(features)
 
-
 def train_model(features, labels):
     #ohe = OneHotEncoder()
     v = DictVectorizer(sparse=False)
