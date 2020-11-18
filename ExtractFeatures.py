@@ -67,6 +67,8 @@ def get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter):
     if word_type is not None:
         features.append(('type', word_type))
     form = word
+    for key in tags_sentence_counter:
+        features.append((key, tags_sentence_counter[key]))
     # if word_prefix is not None:
     #     form = form[len(word_prefix):]
     # if word_suffix is not None and len(form) > len(word_suffix):
