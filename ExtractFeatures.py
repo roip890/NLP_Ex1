@@ -37,15 +37,19 @@ def extract_features(input_file_path, output_file_path):
                 sentence.strip()
             ])
             tokens = sentence.split(' ')
+            tags_sentence_counter = {}
             for index in range(2, len(tokens)):
                 (word, tag) = tokens[index].rsplit('/', 1)
+                if tag not in tags_sentence_counter.keys():
+                    tags_sentence_counter[tag] = 0
+                tags_sentence_counter[tag] += 1
                 (prev_word, prev_tag) = tokens[index-1].rsplit('/', 1)
                 (prev_prev_word, prev_prev_tag) = tokens[index-2].rsplit('/', 1)
-                features = get_word_features(word, prev_tag, prev_prev_tag)
+                features = get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter)
                 output_file_content += tag + ' ' + ' '.join(['='.join(feature) for feature in features]) + '\n'
         output_file.write(output_file_content)
 
-def get_word_features(word, prev_tag, prev_prev_tag):
+def get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter):
     features = []
     word_suffix = get_suffix(word)
     word_prefix = get_prefix(word)
