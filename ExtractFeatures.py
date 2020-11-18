@@ -20,10 +20,17 @@ def extract_features(input_file_path, output_file_path):
             tokens = sentence.split(' ')
             for token in tokens:
                 (word, tag) = token.rsplit('/', 1)
-                if word in Word_count.keys():
-                    Word_count[word] += 1
+                form = word
+                word_suffix = get_suffix(word)
+                word_prefix = get_prefix(word)
+                if word_prefix is not None:
+                    form = form[len(word_prefix):]
+                if word_suffix is not None and len(form) > len(word_suffix):
+                    form = form[:len(form) - len(word_suffix)]
+                if form in Word_count.keys():
+                    Word_count[form] += 1
                 else:
-                    Word_count[word] = 1
+                    Word_count[form] = 1
         for sentence in sentences:
             sentence = sentence.strip()
             tokens = sentence.split(' ')
@@ -51,14 +58,13 @@ def get_word_features(word, prev_tag):
     # type
     if word_type is not None:
         features.append(('type', word_type))
-    if Word_count[word] > 120:
+    form = word
+    if word_prefix is not None:
+        form = form[len(word_prefix):]
+    if word_suffix is not None and len(form) > len(word_suffix):
+        form = form[:len(form) - len(word_suffix)]
+    if Word_count[form] > 200:
     # form
-        form = word
-        if word_prefix is not None:
-            form = form[len(word_prefix):]
-        if word_suffix is not None and len(form) > len(word_suffix):
-            form = form[:len(form) - len(word_suffix)]
-
         features.append(('form', form))
 
     return features
