@@ -45,11 +45,11 @@ def extract_features(input_file_path, output_file_path):
                 #tags_sentence_counter[tag] += 1
                 (prev_word, prev_tag) = tokens[index-1].rsplit('/', 1)
                 (prev_prev_word, prev_prev_tag) = tokens[index-2].rsplit('/', 1)
-                features = get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter)
+                features = get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter,index-2)
                 output_file_content += tag + ' ' + ' '.join(['='.join(feature) for feature in features]) + '\n'
         output_file.write(output_file_content)
 
-def get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter):
+def get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter,index):
     features = []
     word_suffix = get_suffix(word)
     word_prefix = get_prefix(word)
@@ -66,18 +66,18 @@ def get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter):
     # type
     if word_type is not None:
         features.append(('type', word_type))
-
+    features.append(('pos',index))
     form = word
+
+    if Word_count[form] > 200:
+    # form
+        features.append(('form', form))
     #for key in tags_sentence_counter:
     #    features.append((key, str(tags_sentence_counter[key])))
     # if word_prefix is not None:
     #     form = form[len(word_prefix):]
     # if word_suffix is not None and len(form) > len(word_suffix):
     #     form = form[:len(form) - len(word_suffix)]
-    if Word_count[form] > 200:
-    # form
-        features.append(('form', form))
-
     return features
 
 
@@ -154,6 +154,7 @@ def get_type(word):
         return 'upper'
     if word.islower():
         return 'lower'
+
     return None
 
 if len(sys.argv) >= 2:
