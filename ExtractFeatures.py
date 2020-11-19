@@ -45,32 +45,44 @@ def extract_features(input_file_path, output_file_path):
                 #tags_sentence_counter[tag] += 1
                 (prev_word, prev_tag) = tokens[index-1].rsplit('/', 1)
                 (prev_prev_word, prev_prev_tag) = tokens[index-2].rsplit('/', 1)
-                features = get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter,index-2)
+                features = get_word_features(word, prev_tag, prev_prev_tag, index-2)
                 output_file_content += tag + ' ' + ' '.join(['='.join(feature) for feature in features]) + '\n'
         output_file.write(output_file_content)
 
-def get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter,index):
+def get_word_features(word, prev_tag, prev_prev_tag,index):
     features = []
     word_suffix = get_suffix(word)
     word_prefix = get_prefix(word)
-    word_type = get_type(word)
     # prev tag
     features.append(('pt', prev_tag))
     features.append(('ppt', prev_prev_tag))
     # suffix
     if word_suffix is not None:
         features.append(('suff', word_suffix))
+    # suffix 2
+    if len(word) >= 2:
+        features.append(('suff_2', word[-2:]))
+    # suffix 1
+    if len(word) >= 1:
+        features.append(('suff_1', word[-1]))
     # prefix
     if word_prefix is not None:
         features.append(('pref', word_prefix))
+    # prefix 2
+    if len(word) >= 2:
+        features.append(('pref_2', word[:2]))
+    # prefix 1
+    if len(word) >= 1:
+        features.append(('pref_1', word[0]))
     # type
-    if word_type is not None:
-        features.append(('type', word_type))
-    features.append(('pos',index))
-    form = word
-
-    if Word_count[form] > 200:
+    word_types = get_type(word)
+    for word_type in word_types:
+        if word_type is not None:
+            features.append(('type', word_type))
+    features.append(('pos', str(index)))
     # form
+    form = word
+    if Word_count[form] > 200:
         features.append(('form', form))
     #for key in tags_sentence_counter:
     #    features.append((key, str(tags_sentence_counter[key])))
@@ -142,22 +154,24 @@ def get_suffix(word):
     return None
 
 def get_type(word):
+    types = []
     if re.match('^[A-Z][a-z]*', word):
-        return 'name'
+        types.append('name')
     if re.match('^[0-9]*.[0-9]*$', word):
-        return 'number'
+        types.append('number')
     if re.match('^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$', word):
-        return 'date'
+        types.append('date')
     if word.isupper():
-        return 'upper'
+        types.append('upper')
+    if word[1:].upper() != word[1:]:
+        types.append('containUpper')
     if word.islower():
-        return 'lower'
+        types.append('lower')
     if word[1:].lower() != word[1:]:
-        return ''
+        types.append('containLower')
     if word.isalpha():
-        return 'alpa'
-
-    return None
+        types.append('alpa')
+    return types
 
 if len(sys.argv) >= 2:
     corpus_input_file_path = sys.argv[1]
