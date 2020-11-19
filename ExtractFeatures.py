@@ -35,7 +35,7 @@ def extract_features(input_file_path, output_file_path):
                 (word, tag) = tokens[index].rsplit('/', 1)
                 (prev_word, prev_tag) = tokens[index-1].rsplit('/', 1)
                 (prev_prev_word, prev_prev_tag) = tokens[index-2].rsplit('/', 1)
-                features = get_word_features(word, prev_tag, prev_prev_tag, index-2, len(tokens)-index-3)
+                features = get_word_features(word, prev_tag, prev_prev_tag, index-2, len(tokens)-index-3, len(sentence)-2)
                 output_file_content += tag + ' ' + ' '.join(['='.join(feature) for feature in features]) + '\n'
             if sentence_index % 500 == 0:
                 output_file.write(output_file_content)
@@ -43,7 +43,7 @@ def extract_features(input_file_path, output_file_path):
             output_file.write(output_file_content)
             output_file_content = ''
 
-def get_word_features(word, prev_tag, prev_prev_tag, index, last_index):
+def get_word_features(word, prev_tag, prev_prev_tag, index, last_index, sentence_len):
     features = []
     word_suffix = get_suffix(word)
     word_prefix = get_prefix(word)
@@ -54,8 +54,14 @@ def get_word_features(word, prev_tag, prev_prev_tag, index, last_index):
     # prev prev tag
     features.append(('ppt', prev_prev_tag))
 
+    if index == sentence_len-1:
+        features.append(('end', 'true'))
+
+    if index == 0:
+        features.append(('start', 'true'))
+
     # position
-    features.append(('pos', str(index)))
+    # features.append(('pos', str(index)))
 
     # word form
     if word_count[word] > 100:

@@ -5,6 +5,7 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn.linear_model import LogisticRegression
 
 START_TOKEN = '$START$'
+word_count = {}
 features_list = []
 model = LogisticRegression()
 dict_vectorizer = DictVectorizer(sparse=False)
@@ -39,6 +40,7 @@ def check_text(text, result_text):
 def get_features(features_map_file):
     global dict_vectorizer
     global features_list
+    features_dict_list = []
     with open(features_map_file, 'r') as input_file:
         features_lines = input_file.readline()
         features_tokens = features_lines.split(' ')
@@ -46,13 +48,28 @@ def get_features(features_map_file):
             # (feature, value) = features_tokens[index].split('=', 1)
             # features_dict[(feature, value)] = index
             features_dict = {features_tokens[index]: 1}
-            features_list.append(features_dict)
-    dict_vectorizer.fit(features_list)
+            features_dict_list.append(features_dict)
+            features_list.append(features_tokens[index])
+    dict_vectorizer.fit(features_dict_list)
     return features_dict
 
 
 def get_model(model_name):
     return pickle.load(open(model_name, 'rb'))
+
+
+def get_word_count(input_file_name):
+    word_count_dict = {}
+    with open(input_file_name) as input_file:
+        sentences = input_file.readlines()
+        for sentence_index in range(len(sentences)):
+            sentence = sentences[sentence_index].strip()
+            tokens = sentence.split(' ')
+            for token in tokens:
+                if token not in word_count_dict.keys():
+                    word_count_dict[token] = 0
+                word_count_dict[token] += 1
+    return word_count_dict
 
 
 def predict_file(input_file_name):
@@ -73,7 +90,7 @@ def predict_file(input_file_name):
             for index in range(2, len(tokens)):
                 word_features_dict = get_word_features(tokens[index], prev_tag, prev_prev_tag, index-2)
                 word_features = dict_vectorizer.transform([word_features_dict])[0]
-                tag = model.predict(word_features)
+                tag = model.predict([word_features])[0]
                 output_sentence.append('/'.join([tokens[index], tag]))
                 prev_prev_tag = prev_tag
                 prev_tag = tag
@@ -95,7 +112,8 @@ def get_word_features(word, prev_tag, prev_prev_tag, index):
     word_features['='.join(['pos', str(index)])] = 1
 
     # word form
-    word_features['='.join(['form', str(word)])] = 1
+    if '='.join(['form', word]) in features_list:
+        word_features['='.join(['form', str(word)])] = 1
 
     # suffix and prefix
     if word.isalpha():
@@ -218,6 +236,7 @@ if len(sys.argv) >= 4:
 
     features = get_features(feature_map_file)
     model = get_model(model_name)
+    word_count = get_word_count(input_file_name)
     output_file_content = predict_file(input_file_name)
     with open('data/ass1-tagger-dev', 'r') as f:
         result = check_text(output_file_content, f.read())

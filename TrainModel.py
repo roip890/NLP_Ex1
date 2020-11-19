@@ -27,7 +27,7 @@ def train_model(features, labels):
     dv = DictVectorizer(sparse=False)
     features_list = dv.fit_transform(features)
     x_train, x_test, y_train, y_test = train_test_split(features_list, labels, test_size=0.2, random_state=30)
-    lr = LogisticRegression(max_iter=50, verbose=1, n_jobs=-1)
+    lr = LogisticRegression(max_iter=100, verbose=1, n_jobs=-1)
     lr.fit(x_train, y_train)
     pickle.dump(lr, open('linear_regression', 'wb'))
     with open('feature_map_file.txt', 'w+') as f:
