@@ -14,42 +14,36 @@ def extract_features(input_file_path, output_file_path):
     output_file_content = ''
     with open(input_file_path) as input_file, open(output_file_path, 'w+') as output_file:
         sentences = input_file.readlines()
-        for sentence in sentences:
-            sentence = sentence.strip()
+        for sentence_index in range(len(sentences)):
+            sentence = sentences[sentence_index].strip()
             tokens = sentence.split(' ')
             for token in tokens:
                 (word, tag) = token.rsplit('/', 1)
                 form = word
-                # word_suffix = get_suffix(word)
-                # word_prefix = get_prefix(word)
-                # if word_prefix is not None:
-                #     form = form[len(word_prefix):]
-                # if word_suffix is not None and len(form) > len(word_suffix):
-                #     form = form[:len(form) - len(word_suffix)]
                 if form in Word_count.keys():
                     Word_count[form] += 1
                 else:
                     Word_count[form] = 1
-        for sentence in sentences:
+        for sentence_index in range(len(sentences)):
             sentence = ' '.join([
                 '/'.join([START_TOKEN, START_TOKEN]),
                 '/'.join([START_TOKEN, START_TOKEN]),
-                sentence.strip()
+                sentences[sentence_index].strip()
             ])
             tokens = sentence.split(' ')
-            tags_sentence_counter = {}
             for index in range(2, len(tokens)):
                 (word, tag) = tokens[index].rsplit('/', 1)
-                #if tag not in tags_sentence_counter.keys():
-                #    tags_sentence_counter[tag] = 0
-                #tags_sentence_counter[tag] += 1
                 (prev_word, prev_tag) = tokens[index-1].rsplit('/', 1)
                 (prev_prev_word, prev_prev_tag) = tokens[index-2].rsplit('/', 1)
-                features = get_word_features(word, prev_tag, prev_prev_tag, index-2)
+                features = get_word_features(word, prev_tag, prev_prev_tag, index-2, len(tokens)-index-3)
                 output_file_content += tag + ' ' + ' '.join(['='.join(feature) for feature in features]) + '\n'
-        output_file.write(output_file_content)
+            if sentence_index % 500 == 0:
+                output_file.write(output_file_content)
+                output_file_content = ''
+            output_file.write(output_file_content)
+            output_file_content = ''
 
-def get_word_features(word, prev_tag, prev_prev_tag,index):
+def get_word_features(word, prev_tag, prev_prev_tag, index, last_index):
     features = []
     word_suffix = get_suffix(word)
     word_prefix = get_prefix(word)
@@ -79,17 +73,14 @@ def get_word_features(word, prev_tag, prev_prev_tag,index):
     for word_type in word_types:
         if word_type is not None:
             features.append(('type', word_type))
-    features.append(('pos', str(index)))
+    # if '-' in word:
+    #     features.append(('hiffen', 'true'))
     # form
-    form = word
-    if Word_count[form] > 200:
-        features.append(('form', form))
-    #for key in tags_sentence_counter:
-    #    features.append((key, str(tags_sentence_counter[key])))
-    # if word_prefix is not None:
-    #     form = form[len(word_prefix):]
-    # if word_suffix is not None and len(form) > len(word_suffix):
-    #     form = form[:len(form) - len(word_suffix)]
+    # form = word
+    # if Word_count[form] > 200:
+    #     features.append(('form', form))
+    # features.append(('pos', str(index)))
+    # features.append(('last_pos', str(last_index)))
     return features
 
 
