@@ -14,16 +14,16 @@ def extract_features(input_file_path, output_file_path):
     output_file_content = ''
     with open(input_file_path) as input_file, open(output_file_path, 'w+') as output_file:
         sentences = input_file.readlines()
-        for sentence in sentences:
-            sentence = sentence.strip()
-            tokens = sentence.split(' ')
-            for token in tokens:
-                (word, tag) = token.rsplit('/', 1)
-                form = word
-                if form in Word_count.keys():
-                    Word_count[form] += 1
-                else:
-                    Word_count[form] = 1
+        # for sentence in sentences:
+        #     sentence = sentence.strip()
+        #     tokens = sentence.split(' ')
+        #     for token in tokens:
+        #         (word, tag) = token.rsplit('/', 1)
+        #         form = word
+        #         if form in Word_count.keys():
+        #             Word_count[form] += 1
+        #         else:
+        #             Word_count[form] = 1
         for sentence in sentences:
             sentence = ' '.join([
                 '/'.join([START_TOKEN, START_TOKEN]),
@@ -70,7 +70,7 @@ def get_word_features(word, prev_tag, prev_prev_tag, index, last_index):
         if word_type is not None:
             features.append(('type', word_type))
     if '-' in word:
-        features.append(('hiffen', 'true'))
+        features.append(('hiphen', 'true'))
     # form
     # form = word
     # if Word_count[form] > 200:
