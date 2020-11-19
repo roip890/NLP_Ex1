@@ -66,6 +66,7 @@ def get_word_features(word, prev_tag, prev_prev_tag, tags_sentence_counter):
     # type
     if word_type is not None:
         features.append(('type', word_type))
+
     form = word
     #for key in tags_sentence_counter:
     #    features.append((key, str(tags_sentence_counter[key])))
