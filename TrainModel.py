@@ -1,7 +1,6 @@
 import sys
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.model_selection import train_test_split
 import pickle
@@ -24,10 +23,8 @@ def get_data(features_file_path):
     return np.array(labels), np.array(features)
 
 def train_model(features, labels):
-    #ohe = OneHotEncoder()
     v = DictVectorizer(sparse=False)
     #features = np.delete(features, 0, 1)
-    #one_hot_features = ohe.fit_transform(features).toarray()
     dict_feature = v.fit_transform(features)
     # print(v.get_feature_names())
     # print(v.get_params())
