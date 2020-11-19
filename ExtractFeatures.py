@@ -24,6 +24,7 @@ def extract_features(input_file_path, output_file_path):
         #             Word_count[form] += 1
         #         else:
         #             Word_count[form] = 1
+        i=0
         for sentence in sentences:
             sentence = ' '.join([
                 '/'.join([START_TOKEN, START_TOKEN]),
@@ -37,7 +38,11 @@ def extract_features(input_file_path, output_file_path):
                 (prev_prev_word, prev_prev_tag) = tokens[index-2].rsplit('/', 1)
                 features = get_word_features(word, prev_tag, prev_prev_tag, index-2, len(tokens)-index-3)
                 output_file_content += tag + ' ' + ' '.join(['='.join(feature) for feature in features]) + '\n'
-        output_file.write(output_file_content)
+            i+=1
+            if(i%500 ==0):
+                print(i)
+                output_file.write(output_file_content)
+                output_file_content = ""
 
 def get_word_features(word, prev_tag, prev_prev_tag, index, last_index):
     features = []
