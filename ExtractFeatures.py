@@ -2,7 +2,7 @@ import regex as re
 import sys
 START_TOKEN = '$START$'
 END_TOKEN = '$END$'
-Word_count = {}
+word_count = {}
 def push_to_dict(dict, value):
     if value in dict.keys():
         dict[value] = dict[value] + 1
@@ -20,10 +20,10 @@ def extract_features(input_file_path, output_file_path):
             for token in tokens:
                 (word, tag) = token.rsplit('/', 1)
                 form = word
-                if form in Word_count.keys():
-                    Word_count[form] += 1
+                if form in word_count.keys():
+                    word_count[form] += 1
                 else:
-                    Word_count[form] = 1
+                    word_count[form] = 1
         for sentence_index in range(len(sentences)):
             sentence = ' '.join([
                 '/'.join([START_TOKEN, START_TOKEN]),
@@ -47,44 +47,44 @@ def get_word_features(word, prev_tag, prev_prev_tag, index, last_index):
     features = []
     word_suffix = get_suffix(word)
     word_prefix = get_prefix(word)
+
     # prev tag
     features.append(('pt', prev_tag))
+
+    # prev prev tag
     features.append(('ppt', prev_prev_tag))
+
+    # position
+    features.append(('pos', str(index)))
+
+    # word form
+    if word_count[word] > 100:
+        features.append(('form', word))
+
+    # suffix and prefix
     if word.isalpha():
         # suffix
         if word_suffix is not None:
             features.append(('suff', word_suffix))
-        # suffix 2
-        if len(word) >= 2:
-            features.append(('suff_2', word[-2:]))
-        # suffix 1
-        if len(word) >= 1:
-            features.append(('suff_1', word[-1]))
+
         # prefix
         if word_prefix is not None:
             features.append(('pref', word_prefix))
-        # prefix 2
-        if len(word) >= 2:
-            features.append(('pref_2', word[:2]))
-        # prefix 1
-        if len(word) >= 1:
-            features.append(('pref_1', word[0]))
-    else:
-        if Word_count[word] > 200:
-            features.append(('form', word))
+
     # type
     word_types = get_type(word)
     for word_type in word_types:
         if word_type is not None:
             features.append(('type', word_type))
-    # if '-' in word:
-    #     features.append(('hiffen', 'true'))
-    # form
-    # form = word
-    # if Word_count[form] > 200:
-    #     features.append(('form', form))
-    # features.append(('pos', str(index)))
-    # features.append(('last_pos', str(last_index)))
+
+    # hyphen
+    if '-' in word:
+        features.append(('hyphen', 'true'))
+
+    # underscore
+    if '_' in word:
+        features.append(('underscore', 'true'))
+
     return features
 
 
@@ -119,6 +119,7 @@ def get_prefix(word):
         return '^up*'
     return None
 
+
 def get_suffix(word):
     if str(word).endswith('tion'):
         return '^*tion'
@@ -148,6 +149,7 @@ def get_suffix(word):
         return '^*tial'
     return None
 
+
 def get_type(word):
     types = []
     if re.match('^[A-Z][a-z]*', word):
@@ -167,6 +169,7 @@ def get_type(word):
     if word.isalpha():
         types.append('alpa')
     return types
+
 
 if len(sys.argv) >= 2:
     corpus_input_file_path = sys.argv[1]

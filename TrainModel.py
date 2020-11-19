@@ -22,31 +22,39 @@ def get_data(features_file_path):
             labels.append(label)
     return np.array(labels), np.array(features)
 
+
 def train_model(features, labels):
-    v = DictVectorizer(sparse=False)
-    #features = np.delete(features, 0, 1)
-    dict_feature = v.fit_transform(features)
-    # print(v.get_feature_names())
-    # print(v.get_params())
-    x_train, x_test, y_train, y_test = train_test_split(dict_feature, labels, test_size=0.2, random_state=30)
-    lr = LogisticRegression(max_iter=100, verbose=1, n_jobs=-1)
+    dv = DictVectorizer(sparse=False)
+    features_list = dv.fit_transform(features)
+    x_train, x_test, y_train, y_test = train_test_split(features_list, labels, test_size=0.2, random_state=30)
+    lr = LogisticRegression(max_iter=50, verbose=1, n_jobs=-1)
     lr.fit(x_train, y_train)
     pickle.dump(lr, open('linear_regression', 'wb'))
     with open('feature_map_file.txt', 'w+') as f:
-        f.write(' '.join(v.get_feature_names()))
+        f.write(' '.join(dv.get_feature_names()))
+
+    # get score
+    result = lr.score(x_test, y_test)
+    print(result)
+
+    # manual
     y_predict = lr.predict(x_test)
+    predict_rate = check_prediction(y_predict, y_test)
+    print(str(predict_rate))
+
+
+def check_prediction(y_predict, y_values):
     f = 0
     t = 0
     for i in range(len(y_predict)):
-        if y_predict[i] == y_test[i]:
+        if y_predict[i] == y_values[i]:
             t += 1
         else:
             f += 1
+    return t / (f + t)
 
-    print(t / (f + t))
 
 if len(sys.argv) >= 1:
     features_file_path = sys.argv[1]
-
     labels, features = get_data(features_file_path)
     train_model(features, labels)
