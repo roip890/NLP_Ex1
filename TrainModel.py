@@ -29,13 +29,13 @@ def train_model(features, labels):
     #features = np.delete(features, 0, 1)
     #one_hot_features = ohe.fit_transform(features).toarray()
     dict_feature = v.fit_transform(features)
-    print(v.get_feature_names())
-    print(v.get_params())
+    # print(v.get_feature_names())
+    # print(v.get_params())
     x_train, x_test, y_train, y_test = train_test_split(dict_feature, labels, test_size=0.2, random_state=30)
-    lr = LogisticRegression(max_iter=100, verbose=1,n_jobs = -1)
+    lr = LogisticRegression(max_iter=100, verbose=1, n_jobs=-1)
     lr.fit(x_train, y_train)
-    pickle.dump(lr, open("linear_regression", 'wb'))
-    with open("feature_map_file.txt","w+") as f:
+    pickle.dump(lr, open('linear_regression', 'wb'))
+    with open('feature_map_file.txt', 'w+') as f:
         f.write(' '.join(v.get_feature_names()))
     y_predict = lr.predict(x_test)
     f = 0
