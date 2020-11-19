@@ -156,6 +156,7 @@ def get_type(word):
         return ''
     if word.isalpha():
         return 'alpa'
+
     return None
 
 if len(sys.argv) >= 2:
