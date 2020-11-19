@@ -2,6 +2,8 @@ import sys
 import pickle
 import regex as re
 START_TOKEN = '$START$'
+
+
 def get_prefix(word):
     if str(word).startswith('post'):
         return '^post*'

@@ -50,24 +50,28 @@ def get_word_features(word, prev_tag, prev_prev_tag, index, last_index):
     # prev tag
     features.append(('pt', prev_tag))
     features.append(('ppt', prev_prev_tag))
-    # suffix
-    if word_suffix is not None:
-        features.append(('suff', word_suffix))
-    # suffix 2
-    if len(word) >= 2:
-        features.append(('suff_2', word[-2:]))
-    # suffix 1
-    if len(word) >= 1:
-        features.append(('suff_1', word[-1]))
-    # prefix
-    if word_prefix is not None:
-        features.append(('pref', word_prefix))
-    # prefix 2
-    if len(word) >= 2:
-        features.append(('pref_2', word[:2]))
-    # prefix 1
-    if len(word) >= 1:
-        features.append(('pref_1', word[0]))
+    if word.isalpha():
+        # suffix
+        if word_suffix is not None:
+            features.append(('suff', word_suffix))
+        # suffix 2
+        if len(word) >= 2:
+            features.append(('suff_2', word[-2:]))
+        # suffix 1
+        if len(word) >= 1:
+            features.append(('suff_1', word[-1]))
+        # prefix
+        if word_prefix is not None:
+            features.append(('pref', word_prefix))
+        # prefix 2
+        if len(word) >= 2:
+            features.append(('pref_2', word[:2]))
+        # prefix 1
+        if len(word) >= 1:
+            features.append(('pref_1', word[0]))
+    else:
+        if Word_count[word] > 200:
+            features.append(('form', word))
     # type
     word_types = get_type(word)
     for word_type in word_types:
